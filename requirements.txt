@@ -1,0 +1,9 @@
+# Install a PyTorch/torchvision build appropriate for your CPU/CUDA first.
+# The user's existing portable Spikingformer environment can be reused after
+# removing SpikingJelly/CuPy as requirements.
+snntorch==1.0.0
+timm==0.6.12
+numpy==1.25.2
+PyYAML>=6.0,<7
+matplotlib
+tensorboard
