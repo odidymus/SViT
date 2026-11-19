@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# This is a slightly modified version of timm's training script
 """ ImageNet Training Script
 
 This is intended to be a lean and easily modifiable ImageNet training script that reproduces ImageNet
@@ -46,6 +44,29 @@ from timm.loss import LabelSmoothingCrossEntropy, SoftTargetCrossEntropy, JsdCro
 from timm.optim import create_optimizer_v2, optimizer_kwargs
 from timm.scheduler import create_scheduler
 from timm.utils import ApexScaler, NativeScaler
+
+
+def _patch_timm_posterize():
+    """timm 0.9 RandAugment can request posterize(bits=0); recent Pillow raises
+    ``ValueError: bits must be between or equal to 1 and 8``. Clamp to >= 1.
+    Runs at import time so DataLoader workers (spawned on Windows) get it too."""
+    import timm.data.auto_augment as _aa
+    _orig = _aa.posterize
+    if getattr(_orig, '_clamped', False):
+        return
+
+    def posterize(img, bits_to_keep, **kwargs):
+        return _orig(img, max(1, int(bits_to_keep)), **kwargs)
+
+    posterize._clamped = True
+    posterize.__module__, posterize.__qualname__ = _aa.__name__, 'posterize'  # pickles by reference
+    _aa.posterize = posterize
+    for name, fn in list(_aa.NAME_TO_OP.items()):
+        if fn is _orig:
+            _aa.NAME_TO_OP[name] = posterize
+
+
+_patch_timm_posterize()
 
 
 
@@ -177,7 +198,7 @@ parser.add_argument('--warmup-lr', type=float, default=0.0001, metavar='LR',
                     help='warmup learning rate (default: 0.0001)')
 parser.add_argument('--min-lr', type=float, default=1e-5, metavar='LR',
                     help='lower lr bound for cyclic schedulers that hit 0 (1e-5)')
-parser.add_argument('--epochs', type=int, default=200, metavar='N',
+parser.add_argument('--epochs', type=int, default=410, metavar='N',
                     help='number of epochs to train (default: 2)')
 parser.add_argument('--epoch-repeats', type=float, default=0., metavar='N',
                     help='epoch repeat multiplier (number of times to repeat dataset epoch per train epoch).')
