@@ -23,6 +23,7 @@ cifar-10-python.tar.gz
 /wandb/
 /results-T4
 /results-T8
+/results-T16
 *.pth
 *.pth.tar
 *.pt
